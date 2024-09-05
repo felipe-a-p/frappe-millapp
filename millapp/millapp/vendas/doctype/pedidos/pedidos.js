@@ -1,0 +1,559 @@
+// Copyright (c) 2024, Frappe Technologies and contributors
+// For license information, please see license.txt
+
+frappe.ui.form.on("Pedidos", {
+    onload(frm) {
+        // Inicializar os dicionários com valores padrão vazios
+        frm.dict_artigos = {};
+        frm.dict_precos = {};
+        frm.dict_modelos = {};
+
+    },
+    before_save(frm) {
+        calcular_valores_entregue_vendido(frm)
+    },
+    refresh(frm) {
+        document.querySelectorAll('button').forEach(button => {
+            button.removeEventListener('click', () => { });
+        });
+
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = '/assets/millapp/css/custom.css';
+        document.head.appendChild(link);
+
+        frm.add_custom_button(__('Botão de Teste de Função'), function () {
+            console.log('Artigos:', frm.dict_artigos);
+            console.log('Preços:', frm.dict_precos);
+            console.log('Modelos:', frm.dict_modelos);
+        });
+
+        // Scripts
+        // TODO Função entregar pedido
+        // TODO : Cancelar Pedido
+
+        let elementos = [
+            { selector: 'button[data-fieldname="botao_criar_pedido"]', event: 'click', handler: () => criar_pedido(frm) },
+            { selector: 'button[data-fieldname="botao_editar_itens"]', event: 'click', handler: () => inicar_lancamento(frm) },
+            { selector: 'button[data-fieldname="botao_salvar_itens"]', event: 'click', handler: () => encerrar_lancamento(frm) },
+            { selector: 'button[data-fieldname="botao_encerrar_separacao"]', event: 'click', handler: () => encerrar_lancamento(frm, prox_etapa = true) },
+            { selector: 'button[data-fieldname="botao_entregar_pedido"]', event: 'click', handler: () => entregar_pedido(frm) },
+            { selector: 'button[data-fieldname="botao_iniciar_fechamento"]', event: 'click', handler: () => iniciar_fechamento(frm) },
+
+        ];
+
+        function applyHandlers() {
+            elementos.forEach(({ selector, event, handler }) => {
+                document.querySelectorAll(selector).forEach((element) => {
+                    if (!element.hasAttribute('data-handler-added')) {
+                        element.addEventListener(event, handler);
+                        element.setAttribute('data-handler-added', 'true'); // Marca o elemento como processado
+                    }
+                });
+            });
+        };
+
+        // Execuções
+
+        applyHandlers();
+
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                mutation.addedNodes.forEach(function (node) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const element = node;
+                        // console.log(element)
+                        elementos.forEach(({ selector, event, handler }) => {
+                            if (element.matches(selector) && !element.hasAttribute('data-handler-added')) {
+                                element.addEventListener(event, handler);
+                                element.setAttribute('data-handler-added', 'true'); // Marca o elemento como processado
+                            }
+                        });
+                    }
+                });
+            });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // TODO : Input artigos manual com tamanhos e modelos
+        // Layout Por State
+        // State : Pre Criado
+        frm.toggle_display('botao_criar_pedido', (frm.doc.pedido_state === 'Pre Criado'));
+
+        // State : Criado
+        frm.toggle_display('botao_encerrar_separacao', (frm.doc.pedido_state == 'Criado'));
+
+        // State : Separado
+        frm.toggle_display('botao_entregar_pedido', (frm.doc.pedido_state == 'Separado' || frm.doc.pedido_state == 'Criado'));
+
+        // State : Entregue
+        frm.set_df_property('data_entrega', 'read_only', frm.doc.pedido_state == 'Entregue' || frm.doc.pedido_state == 'Fechado');
+
+        // State : Faturado
+        frm.toggle_display('botao_iniciar_fechamento', frm.doc.pedido_state === 'Entregue');
+
+    },
+});
+
+frappe.ui.form.on('Artigos no Pedido', {
+
+});
+
+function calcular_valores_entregue_vendido(frm) {
+    let total_entregue_qtd_var = 0;
+    let total_entregue_vlr_var = 0;
+    let total_vendido_qtd_var = 0;
+    let total_vendido_vlr_var = 0;
+
+    frm.doc.artigos_do_pedido.forEach(function (row) {
+        if (row.quantidade_entregue && row.preco_etiqueta) {
+            total_entregue_qtd_var += row.quantidade_entregue;
+            total_entregue_vlr_var += row.valor_total_entregue;
+        }
+    });
+
+    frm.doc.artigos_do_pedido.forEach(function (row) {
+        if (row.quantidade_entregue && row.preco_etiqueta) {
+            total_vendido_qtd_var += row.quantidade_vendida;
+            total_vendido_vlr_var += row.total_vendido;
+        }
+    });
+
+    frm.set_value('total_entregue_qtd', total_entregue_qtd_var);
+    frm.set_value('total_entregue_vlr', total_entregue_vlr_var);
+    frm.set_value('total_vendido_qtd', total_vendido_qtd_var);
+    frm.set_value('total_vendido_vlr', total_vendido_vlr_var);
+}
+
+function criar_pedido(frm) {
+    if (frm.doc.data_entrega && frm.doc.data_entrega >= frappe.datetime.get_today()) {
+        frm.set_value('pedido_state', 'Criado');
+        frm.set_value('data_criacao', frappe.datetime.now_datetime());
+        // TODO DOCTYPE CONFIGURAÇÃO DATA ENTREGA 
+        frm.set_value('data_acerto', frappe.datetime.add_days(frm.doc.data_entrega, 48));
+        frm.save();
+        frappe.call({
+            method: 'millapp.api.atualizar_campos',
+            args: {
+                doctype: 'Atendimentos',
+                name: frm.doc.atendimento,
+                campos_json: JSON.stringify({
+                    'atendimento_state': 'Marcado',
+                    'data_visita': frm.doc.data_entrega
+                })
+            },
+            callback: function (response) {
+                if (response.message) {
+                    frappe.msgprint(__('Pedido criado com sucesso!'));
+                }
+            }
+        });
+    } else {
+        frappe.msgprint(__('A data de entrega tem de ser maior ou igual a hoje.'));
+    };
+};
+
+function inicar_lancamento(frm) {
+    if (frm.doc.pedido_state === 'Pre Criado') {
+        frappe.throw(__('Favor confirmar data e criar o pedido antes de editar os itens.'));
+    } else if (frm.doc.pedido_state === 'Faturado') {
+        frappe.throw(__('Você não tem permissão para editar itens de um pedido fechado, contate um administrador.'));
+    } else {
+        let estado_check_swap = frm.doc.check_swapper_edicao;
+        frm.set_value('check_swapper_edicao', !estado_check_swap);
+        frm.refresh_field('check_swapper_edicao');
+        frm.set_df_property('modo_lancamento', 'read_only', 1);
+        frm.toggle_display('ref_ou_cb', true);
+        frm.toggle_display('artigo_a_editar', true);
+        frm.toggle_display('html_lancador_quantidade', true);
+        frm.toggle_display('botao_salvar_itens', true);
+        frm.toggle_display('botao_editar_itens', false);
+        lancador.setup(frm, 'artigos_do_pedido', 'tabela_de_modelos');
+
+    };
+};
+
+function encerrar_lancamento(frm, prox_etapa = false) {
+    // TODO modos salvar e encerrar
+    frm.save()
+        .then(() => {
+            frm.toggle_display('ref_ou_cb', false);
+            frm.toggle_display('artigo_a_editar', false);
+            frm.toggle_display('html_lancador_quantidade', false);
+            frm.toggle_display('botao_somar', false);
+            frm.toggle_display('botao_substituir', false);
+            frm.toggle_display('botao_salvar_itens', false);
+            frm.toggle_display('botao_editar_itens', true);
+            frm.set_df_property('modo_lancamento', 'read_only', 0)
+            frappe.msgprint(__('Itens salvos com sucesso!'));
+        })
+        .catch((error) => {
+            frappe.msgprint(__('Ocorreu um erro ao salvar os itens.'));
+            console.error(error);
+        });
+    if (prox_etapa) {
+        if (confirm('Deseja encerrar a separação e marcar o pedido como separado?')) {
+            frm.set_value('pedido_state', 'Separado');
+            frappe.call({
+                method: 'millapp.api.atualizar_campos',
+                args: {
+                    doctype: 'Atendimentos',
+                    name: frm.doc.atendimento,
+                    campos_json: JSON.stringify({
+                        'atendimento_state': 'Separado',
+                    })
+                },
+                callback: function (response) {
+                    if (response.message) {
+                        frappe.msgprint(__('Pedido separado com sucesso!'));
+                    }
+                }
+            })
+        }
+
+    }
+};
+
+function entregar_pedido(frm) {
+    if (confirm('Tem certeza que deseja entregar o pedido?')) {
+        frm.set_value('pedido_state', 'Entregue');
+        frm.set_value('data_entregue', frappe.datetime.now_datetime());
+        frm.save();
+        frappe.call({
+            method: 'millapp.api.atualizar_campos',
+            args: {
+                doctype: 'Atendimentos',
+                name: frm.doc.atendimento,
+                campos_json: JSON.stringify({
+                    'atendimento_state': 'Entregue',
+                    'data_visita': frm.doc.data_acerto
+                })
+            },
+            callback: function (response) {
+                if (response.message) {
+                    console.log('Campos atualizados:', response.message);
+                }
+            }
+        });
+        // TODO Logica de logistica
+    } else {
+        // Code to execute if user cancels
+        console.log('Entrega do pedido cancelada.');
+    }
+};
+
+function iniciar_fechamento(frm) {
+    frm.set_value('estado_acerto', 'Fechando');
+    frm.toggle_display('botao_iniciar_fechamento', false);
+    frm.toggle_display('botao_fechar_pedido', true);
+};
+
+function fechar_pedido(frm) {
+    if (confirm('Tem certeza que deseja fechar o pedido?')) {
+        console.log('fechar pedido')
+        // mudar status do pedido
+        // gerar fatura
+    }
+};
+// Lançador de itens
+const lancador = {
+    setup: function (frm, tabela_de_artigos, tabela_de_modelos) {
+        this.frm = frm;
+        this.tabela_de_artigos = tabela_de_artigos;
+        this.tabela_de_modelos = tabela_de_modelos;
+        if (!this.frm.dict_artigos || Object.keys(this.frm.dict_artigos).length === 0 ||
+            !this.frm.dict_precos || Object.keys(this.frm.dict_precos).length === 0 ||
+            !this.frm.dict_modelos || Object.keys(this.frm.dict_modelos).length === 0) {
+            this.carregar_dicts_de_dados(frm);
+            this.bind_events(frm);
+            this.montar_html_lancamento_manual();
+            this.frm.set_value('artigo_a_editar', '');
+        }
+    },
+
+    carregar_dicts_de_dados: function (frm) {
+        frappe.call({
+            method: 'millapp.api.get_dados_dos_artigos',
+            args: { tabela_de_precos: frm.doc.tabela_precos },
+            callback: function (response) {
+                if (response.message) {
+                    // Atualizar os dicionários com os valores da resposta, se disponíveis
+                    frm.dict_artigos = response.message.artigos || {};
+                    frm.dict_precos = response.message.precos || {};
+                    frm.dict_modelos = response.message.modelos || {};
+                } else {
+                    frappe.msgprint(__('Erro ao carregar dados: ' + response.message.message));
+                }
+            }
+        });
+    },
+
+    bind_events: function (frm) {
+        const refOuCbField = frm.fields_dict.ref_ou_cb ? frm.fields_dict.ref_ou_cb.$input : null;
+
+        if (refOuCbField) {
+            refOuCbField.on('input', this.debounce(function () {
+                let cod_ou_ref = $(this).val();
+                lancador.processar_dados_inseridos(cod_ou_ref);
+            }, 400));
+        }
+
+    },
+
+    processar_dados_inseridos: function (cod_ou_ref) {
+        this.frm.set_value('ref_ou_cb', '');
+        let artigo = Object.values(this.frm.dict_artigos).find(artigo => artigo.referencia === cod_ou_ref);
+        if (artigo != undefined) {
+            // logica de artigo
+            this.frm.set_value('artigo_a_editar', artigo.name);
+            this.montar_html_lancamento_manual();
+        } else {
+            let modelo = Object.values(this.frm.dict_modelos).find(modelo => modelo.codigo_de_barras_numeros === cod_ou_ref);
+            if (modelo != undefined) {
+                // logica de modelo de leitura de CODIGO DE BARRAS
+                this.frm.set_value('artigo_a_editar', modelo.parent);
+                this.desmontar_html_lancamento_manual();
+                this.editar_item(modelo.parent, 1, 'Somar', 'artigos');
+                this.editar_item(modelo.name, 1, 'Somar', 'modelos');
+                this.frm.set_value('ref_ou_cb', '');
+            } else {
+                this.frm.set_value('artigo_a_editar', '');
+            }
+        }
+        this.frm.set_value('ref_ou_cb', '');
+        this.frm.refresh_field('ref_ou_cb');
+    },
+
+    montar_html_lancamento_manual: function () {
+        // Insere o HTML no DOM
+        this.frm.fields_dict.html_lancador_quantidade.$wrapper.html(`
+        <div class="form-group custom-form">
+            <label class="control-label">Quantidade</label>
+            <div class="input-group">
+                <span class="input-group-btn">
+                    <button class="btn btn-red btn-custom-lg btn-minus" type="button">-</button>
+                </span>
+                <input type="text" class="form-control" id="increment_value" value="0">
+                <span class="input-group-btn">
+                    <button class="btn btn-green btn-custom-lg btn-plus" type="button">+</button>
+                </span>
+                <button id="botao_somar" class="btn btn-primary" type="button" style="margin-left: 10px;">Somar</button>
+                <button id="botao_substituir" class="btn btn-primary" type="button" style="margin-left: 10px;">Substituir</button>
+            </div>
+        </div>
+    `);
+
+        // Remove event listeners anteriores, se existirem
+        const botaoSomar = document.getElementById('botao_somar');
+        const botaoSubstituir = document.getElementById('botao_substituir');
+        const btnMinus = this.frm.fields_dict.html_lancador_quantidade.$wrapper.find('.btn-minus');
+        const btnPlus = this.frm.fields_dict.html_lancador_quantidade.$wrapper.find('.btn-plus');
+
+        if (botaoSomar) {
+            botaoSomar.removeEventListener('click', this.botao_manual_pressionado);
+            botaoSomar.addEventListener('click', () => this.botao_manual_pressionado('Somar'));
+        } else {
+            console.error('Elemento com ID "botao_somar" não encontrado.');
+        }
+
+        if (botaoSubstituir) {
+            botaoSubstituir.removeEventListener('click', this.botao_manual_pressionado);
+            botaoSubstituir.addEventListener('click', () => this.botao_manual_pressionado('Substituir'));
+        } else {
+            console.error('Elemento com ID "botao_substituir" não encontrado.');
+        }
+
+        if (btnMinus.length > 0) {
+            btnMinus.off('click').on('click', function () {
+                // Lógica do evento de clique para o botão "-"
+                let incrementValue = parseInt($('#increment_value').val(), 10);
+                if (!isNaN(incrementValue) && incrementValue > 0) {
+                    $('#increment_value').val(incrementValue - 1);
+                }
+            });
+        }
+
+        if (btnPlus.length > 0) {
+            btnPlus.off('click').on('click', function () {
+                // Lógica do evento de clique para o botão "+"
+                let incrementValue = parseInt($('#increment_value').val(), 10);
+                if (!isNaN(incrementValue)) {
+                    $('#increment_value').val(incrementValue + 1);
+                }
+            });
+        }
+    },
+
+    botao_manual_pressionado: function (funcao) {
+        // ira executar a logica ref > cod_barras padrao
+        const artigo = this.frm.doc.artigo_a_editar
+        const quantidade = parseInt($('#increment_value').val()) || 0;
+        const modelo = Object.values(this.frm.dict_modelos).find(modelo => modelo.parent === artigo && modelo.modelo_padrao === 1);
+
+        this.editar_item(artigo, quantidade, funcao, 'artigos');
+        this.editar_item(modelo.name, quantidade, funcao, 'modelos');
+    },
+
+    desmontar_html_lancamento_manual: function () {
+        this.frm.fields_dict.html_lancador_quantidade.$wrapper.html('');
+        this.alterar_visibidade_botao('botao_somar', false);
+        this.alterar_visibidade_botao('botao_substituir', false);
+    },
+
+    alterar_visibidade_botao: function (button, display) {
+        this.frm.toggle_display(button, display);
+    },
+
+
+    /**
+     * Edita um item na tabela de lançamento.
+     * @param {string} item - O item a ser editado.
+     * @param {number} quantidade - A quantidade a ser adicionada ou removida.
+     * @param {string} modo - O modo de edição ('adicionar' ou 'remover').
+     * @param {string} grid - O tipo de grid ('artigos' ou 'modelos').
+     */
+    editar_item: async function (item, quantidade, modo, grid) {
+        const campo_alvo = this.get_campo_alvo();
+        this.get_tabela_lancamento(grid);
+
+        const registro = await this.encontrar_na_tabela(item, grid);
+
+        if (registro) {
+            this.editar_registro_na_tabela(registro, quantidade, modo, grid);
+            console.log('Registro encontrado:', registro);
+        } else {
+            this.criar_registro_na_tabela(item, quantidade, grid);
+        };
+
+        calcular_valores_entregue_vendido(this.frm);
+    },
+
+    /**
+     * Obtém o campo alvo para a operação.
+     * @returns {string} - O nome do campo alvo.
+     */
+    get_campo_alvo: function () {
+        const campo_alvo = (this.frm.doc.estado_acerto == 'Fechando') ? 'quantidade_devolvida' : 'quantidade_entregue';
+        return campo_alvo;
+    },
+
+    /**
+     * Define a tabela de lançamento com base no grid fornecido.
+     * @param {string} grid - O tipo de grid ('artigos' ou 'modelos').
+     */
+    get_tabela_lancamento: function (grid) {
+        let tabela_lancamento;
+        if (grid == 'artigos') {
+            tabela_lancamento = this.tabela_de_artigos;
+        } else if (grid == 'modelos') {
+            tabela_lancamento = this.tabela_de_modelos;
+        } else {
+            console.log('Tabela de lançamento não encontrada.');
+        };
+        return tabela_lancamento;
+    },
+
+    /**
+     * Encontra um item na tabela de lançamento.
+     * @param {string} item - O item a ser encontrado.
+     * @param {string} grid - O tipo de grid ('artigo' ou 'modelo').
+     * @returns {Object|boolean} - O registro encontrado ou false se não encontrado.
+     */
+    encontrar_na_tabela: async function (item, grid) {
+        let registro_found = false;
+        const tabela_lancamento = this.get_tabela_lancamento(grid);
+        for (let i = 0; i < this.frm.doc[tabela_lancamento].length; i++) {
+            let registro = this.frm.doc[tabela_lancamento][i];
+            if (grid == 'artigos') {
+                if (registro.artigo === item) {
+                    registro_found = registro;
+                    break; // Interrompe a iteração
+                }
+            }
+            else if (grid == 'modelos') {
+                if (registro.modelo === item) {
+                    registro_found = registro;
+                    break; // Interrompe a iteração
+                }
+            }
+        }
+        return registro_found;
+    },
+
+    /**
+     * Cria um novo registro na tabela de lançamento.
+     * @param {string} item - O item a ser adicionado.
+     * @param {number} quantidade - A quantidade do item.
+     * @param {string} grid - O tipo de grid ('artigos' ou 'modelos').
+     */
+    criar_registro_na_tabela: async function (item, quantidade, grid) {
+        const campo_alvo = this.get_campo_alvo();
+        const tabela_lancamento = this.get_tabela_lancamento(grid);
+        let registro;
+        if (grid === 'artigos') {
+            let preco = Object.values(this.frm.dict_precos).find(preco => preco.parent === item);
+            preco = preco.preco;
+            registro = {
+                artigo: item,
+                [campo_alvo]: quantidade,
+                preco_etiqueta: preco
+            };
+            if (campo_alvo == 'quantidade_entregue') {
+                registro.valor_total_entregue = quantidade * preco;
+            }
+        } else if (grid === 'modelos') {
+            registro = {
+                modelo: item,
+                [campo_alvo]: quantidade,
+            };
+        };
+        this.frm.add_child(tabela_lancamento, registro);
+        this.frm.refresh_field(tabela_lancamento);
+    },
+
+    /**
+     * Cria um novo registro na tabela de lançamento.
+     * @param {string} item - O item a ser adicionado.
+     * @param {number} quantidade - A quantidade do item.
+     * @param {string} modo - O modo de edição ('somar', 'substituir', 'subtrair' ou 'remover').
+     * @param {string} grid - O tipo de grid ('artigos' ou 'modelos').
+     */
+    editar_registro_na_tabela: function (registro, quantidade, modo, grid) {
+        const campo_alvo = this.get_campo_alvo();
+        const novo_valor = this.calcular_novo_valor(registro, quantidade, modo);
+        frappe.model.set_value(registro.doctype, registro.name, campo_alvo, novo_valor);
+        if (campo_alvo == 'quantidade_entregue') {
+            frappe.model.set_value(registro.doctype, registro.name, 'valor_total_entregue', novo_valor * registro.preco_etiqueta);
+        } else if (campo_alvo == 'quantidade_devolvida') {
+            frappe.model.set_value(registro.doctype, registro.name, 'quantidade_vendida', registro.quantidade_entregue - registro.quantidade_devolvida);
+            if (grid == "artigos") {
+                frappe.model.set_value(registro.doctype, registro.name, 'total_vendido', registro.quantidade_vendida * registro.preco_etiqueta);
+            }
+        }
+    },
+
+    calcular_novo_valor: function (registro, quantidade, modo) {
+        const campo_alvo = this.get_campo_alvo();
+        let quantidade_atual = registro[campo_alvo];
+        switch (modo) {
+            case 'Somar':
+                return quantidade_atual + quantidade;
+            case 'Substituir':
+                return quantidade;
+            case 'Subtrair':
+                return quantidade_atual - quantidade;
+            case 'Remover':
+                return quantidade_atual - quantidade_atual;
+        }
+    },
+
+    debounce: function (func, wait) {
+        let timeout;
+        return function (...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
+    }
+};

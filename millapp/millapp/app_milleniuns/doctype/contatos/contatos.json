@@ -1,0 +1,192 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{nome} {sobrenome} - {cidade}",
+ "creation": "2024-07-30 11:38:51.829790",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "dados_cadastrais_section",
+  "status",
+  "pessoa",
+  "nome",
+  "sobrenome",
+  "cpf",
+  "rg",
+  "cnpj",
+  "nascimento",
+  "id_sacwin",
+  "column_break_lyi4",
+  "telefone",
+  "telefone_secundario",
+  "cep",
+  "rua",
+  "casa",
+  "complemento",
+  "bairro",
+  "cidade",
+  "estado",
+  "column_break_nwpx",
+  "observacoes",
+  "latitude",
+  "longitude"
+ ],
+ "fields": [
+  {
+   "fieldname": "dados_cadastrais_section",
+   "fieldtype": "Section Break",
+   "label": "Dados Cadastrais"
+  },
+  {
+   "default": "Fisica",
+   "fieldname": "pessoa",
+   "fieldtype": "Select",
+   "label": "Pessoa",
+   "options": "Fisica\nJuridica\nMEI"
+  },
+  {
+   "fieldname": "sobrenome",
+   "fieldtype": "Data",
+   "label": "Sobrenome"
+  },
+  {
+   "fieldname": "cpf",
+   "fieldtype": "Data",
+   "label": "CPF"
+  },
+  {
+   "fieldname": "rg",
+   "fieldtype": "Data",
+   "label": "RG"
+  },
+  {
+   "fieldname": "cnpj",
+   "fieldtype": "Data",
+   "label": "CNPJ"
+  },
+  {
+   "fieldname": "nascimento",
+   "fieldtype": "Date",
+   "label": "Nascimento"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Ativo\nArquivado"
+  },
+  {
+   "fieldname": "id_sacwin",
+   "fieldtype": "Data",
+   "label": "Id Sacwin"
+  },
+  {
+   "fieldname": "column_break_lyi4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "telefone",
+   "fieldtype": "Data",
+   "label": "Telefone Principal",
+   "reqd": 1
+  },
+  {
+   "depends_on": "telefone",
+   "fieldname": "telefone_secundario",
+   "fieldtype": "Data",
+   "label": "Telefone Secundario"
+  },
+  {
+   "fieldname": "cep",
+   "fieldtype": "Data",
+   "label": "CEP"
+  },
+  {
+   "fieldname": "rua",
+   "fieldtype": "Data",
+   "label": "Rua"
+  },
+  {
+   "fieldname": "casa",
+   "fieldtype": "Data",
+   "label": "Casa"
+  },
+  {
+   "fieldname": "bairro",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bairro"
+  },
+  {
+   "fieldname": "cidade",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Cidade",
+   "reqd": 1
+  },
+  {
+   "fieldname": "estado",
+   "fieldtype": "Data",
+   "label": "Estado"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Data",
+   "label": "Latitude"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Data",
+   "label": "Longitude"
+  },
+  {
+   "fieldname": "complemento",
+   "fieldtype": "Data",
+   "label": "Complemento"
+  },
+  {
+   "fieldname": "nome",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nome",
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_nwpx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "observacoes",
+   "fieldtype": "Data",
+   "label": "Observa\u00e7\u00f5es"
+  }
+ ],
+ "links": [],
+ "modified": "2024-08-30 16:11:04.113569",
+ "modified_by": "Administrator",
+ "module": "App Milleniuns",
+ "name": "Contatos",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
