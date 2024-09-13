@@ -39,8 +39,6 @@ def get_artigo_codigo_de_barras(codigo):
     else:
         return None
 
-    
-
 @frappe.whitelist()
 def get_dados_dos_artigos(tabela_de_precos):
     dados = {

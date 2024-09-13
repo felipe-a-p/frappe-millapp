@@ -9,7 +9,6 @@
   "section_break_tfip",
   "referencia",
   "artigo",
-  "tags",
   "column_break_fhix",
   "status",
   "grupo",
@@ -78,12 +77,6 @@
    "label": "Mat\u00e9ria Prima"
   },
   {
-   "fieldname": "tags",
-   "fieldtype": "Table MultiSelect",
-   "label": "Tags",
-   "options": "Tags"
-  },
-  {
    "fieldname": "column_break_fhix",
    "fieldtype": "Column Break"
   },
@@ -118,7 +111,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-09-02 11:26:43.007390",
+ "modified": "2024-09-06 09:50:55.452935",
  "modified_by": "Administrator",
  "module": "Materiais",
  "name": "Artigos",

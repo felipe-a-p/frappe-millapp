@@ -12,6 +12,7 @@
   "endere\u00e7o",
   "column_break_xfph",
   "pedido_state",
+  "tipo_pedido",
   "data_entrega",
   "data_acerto",
   "botao_criar_pedido",
@@ -27,8 +28,6 @@
   "total_vendido_qtd",
   "total_vendido_vlr",
   "column_break_sdpl",
-  "faturamento",
-  "status_faturamento",
   "artigos_tab",
   "section_break_cqhn",
   "estado_acerto",
@@ -37,9 +36,7 @@
   "section_break_yyji",
   "modo_lancamento",
   "column_break_gfuv",
-  "devolver_tudo",
   "column_break_mapi",
-  "vender_tudo",
   "section_break_ozfe",
   "column_break_wwns",
   "column_break_gfpk",
@@ -47,7 +44,7 @@
   "column_break_mugp",
   "botao_encerrar_separacao",
   "botao_entregar_pedido",
-  "botao_fechar_pedido",
+  "botao_encerrar_fechamento",
   "section_break_lancamento",
   "ref_ou_cb",
   "artigo_a_editar",
@@ -124,12 +121,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "botao_fechar_pedido",
-   "fieldtype": "Button",
-   "hidden": 1,
-   "label": "Encerrar Fechamento"
-  },
-  {
    "fieldname": "section_break_cqhn",
    "fieldtype": "Section Break"
   },
@@ -138,18 +129,8 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "devolver_tudo",
-   "fieldtype": "Button",
-   "label": "Devolver Tudo"
-  },
-  {
    "fieldname": "column_break_mugp",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "vender_tudo",
-   "fieldtype": "Button",
-   "label": "Vender Tudo"
   },
   {
    "fieldname": "artigos_tab",
@@ -185,18 +166,8 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "faturamento",
-   "fieldtype": "Data",
-   "label": "Faturamento"
-  },
-  {
    "fieldname": "column_break_csnm",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "status_faturamento",
-   "fieldtype": "Data",
-   "label": "Status Faturamento"
   },
   {
    "fieldname": "botao_iniciar_fechamento",
@@ -348,7 +319,7 @@
    "fieldname": "tabela_de_modelos",
    "fieldtype": "Table",
    "label": "Modelos",
-   "options": "Modelos do Artigo do no Pedido"
+   "options": "Modelos do Artigo no Pedido"
   },
   {
    "fieldname": "section_break_lhzd",
@@ -369,11 +340,25 @@
   {
    "fieldname": "column_break_wwns",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "botao_encerrar_fechamento",
+   "fieldtype": "Button",
+   "hidden": 1,
+   "label": "Encerrar Fechamento"
+  },
+  {
+   "default": "Consigna\u00e7\u00e3o",
+   "fieldname": "tipo_pedido",
+   "fieldtype": "Select",
+   "label": "Tipo de Pedido",
+   "options": "Consigna\u00e7\u00e3o\nVarejo\nAtacado\nEncomenda",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-09-04 16:20:12.974147",
+ "modified": "2024-09-13 10:58:03.558806",
  "modified_by": "Administrator",
  "module": "Vendas",
  "name": "Pedidos",
@@ -394,5 +379,6 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

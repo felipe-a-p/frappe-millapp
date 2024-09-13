@@ -8,9 +8,16 @@ frappe.ui.form.on("Pedidos", {
         frm.dict_precos = {};
         frm.dict_modelos = {};
 
+        frm.artigos_iniciais = frm.doc.artigos_do_pedido.map(artigo => ({
+            artigo: artigo.artigo,
+            quantidade_entregue: artigo.quantidade_entregue,
+            quantidade_devolvida: artigo.quantidade_devolvida
+        }));
     },
     before_save(frm) {
-        calcular_valores_entregue_vendido(frm)
+        calcular_valores_entregue_vendido(frm);
+        let mudancas = comparar_mudancas_de_artigos(frm)
+        // TODO IF status == entregue e houver mudanças alterar estoque da praça/semana
     },
     refresh(frm) {
         document.querySelectorAll('button').forEach(button => {
@@ -24,22 +31,20 @@ frappe.ui.form.on("Pedidos", {
         document.head.appendChild(link);
 
         frm.add_custom_button(__('Botão de Teste de Função'), function () {
-            console.log('Artigos:', frm.dict_artigos);
-            console.log('Preços:', frm.dict_precos);
-            console.log('Modelos:', frm.dict_modelos);
+            gerar_fatura(frm);
         });
-
         // Scripts
         // TODO Função entregar pedido
         // TODO : Cancelar Pedido
 
         let elementos = [
             { selector: 'button[data-fieldname="botao_criar_pedido"]', event: 'click', handler: () => criar_pedido(frm) },
-            { selector: 'button[data-fieldname="botao_editar_itens"]', event: 'click', handler: () => inicar_lancamento(frm) },
+            { selector: 'button[data-fieldname="botao_editar_itens"]', event: 'click', handler: () => iniciar_lancamento(frm) },
             { selector: 'button[data-fieldname="botao_salvar_itens"]', event: 'click', handler: () => encerrar_lancamento(frm) },
             { selector: 'button[data-fieldname="botao_encerrar_separacao"]', event: 'click', handler: () => encerrar_lancamento(frm, prox_etapa = true) },
             { selector: 'button[data-fieldname="botao_entregar_pedido"]', event: 'click', handler: () => entregar_pedido(frm) },
             { selector: 'button[data-fieldname="botao_iniciar_fechamento"]', event: 'click', handler: () => iniciar_fechamento(frm) },
+            { selector: 'button[data-fieldname="botao_encerrar_fechamento"]', event: 'click', handler: () => encerrar_fechamento(frm) },
 
         ];
 
@@ -100,6 +105,36 @@ frappe.ui.form.on('Artigos no Pedido', {
 
 });
 
+function comparar_mudancas_de_artigos(frm) {
+    // requer frm.artigos_iniciais inicializado
+    let mudancas = [];
+    frm.doc.artigos_do_pedido.forEach(item => {
+        let artigo_inicial = frm.artigos_iniciais.find(i => i.artigo === item.artigo);
+
+        if (artigo_inicial) {
+            if (artigo_inicial.quantidade_entregue !== item.quantidade_entregue) {
+                mudancas.push({
+                    artigo: item.artigo,
+                    fieldname: 'quantidade_entregue',
+                    old_value: artigo_inicial.quantidade_entregue,
+                    new_value: item.quantidade_entregue,
+                    mudanca: item.quantidade_entregue - artigo_inicial.quantidade_entregue
+                });
+            };
+            if (artigo_inicial.quantidade_devolvida !== item.quantidade_devolvida) {
+                mudancas.push({
+                    artigo: item.artigo,
+                    fieldname: 'quantidade_devolvida',
+                    old_value: artigo_inicial.quantidade_devolvida,
+                    new_value: item.quantidade_devolvida,
+                    mudanca: item.quantidade_devolvida - artigo_inicial.quantidade_devolvida
+                });
+            };
+        };
+    });
+    return mudancas
+};
+
 function calcular_valores_entregue_vendido(frm) {
     let total_entregue_qtd_var = 0;
     let total_entregue_vlr_var = 0;
@@ -124,13 +159,13 @@ function calcular_valores_entregue_vendido(frm) {
     frm.set_value('total_entregue_vlr', total_entregue_vlr_var);
     frm.set_value('total_vendido_qtd', total_vendido_qtd_var);
     frm.set_value('total_vendido_vlr', total_vendido_vlr_var);
-}
+};
 
 function criar_pedido(frm) {
     if (frm.doc.data_entrega && frm.doc.data_entrega >= frappe.datetime.get_today()) {
         frm.set_value('pedido_state', 'Criado');
         frm.set_value('data_criacao', frappe.datetime.now_datetime());
-        // TODO DOCTYPE CONFIGURAÇÃO DATA ENTREGA 
+        // TODO DOCTYPE CONFIGURAÇÃO DATA ENTREGA&ACERTO / não atender fds/feriado  
         frm.set_value('data_acerto', frappe.datetime.add_days(frm.doc.data_entrega, 48));
         frm.save();
         frappe.call({
@@ -154,7 +189,7 @@ function criar_pedido(frm) {
     };
 };
 
-function inicar_lancamento(frm) {
+function iniciar_lancamento(frm) {
     if (frm.doc.pedido_state === 'Pre Criado') {
         frappe.throw(__('Favor confirmar data e criar o pedido antes de editar os itens.'));
     } else if (frm.doc.pedido_state === 'Faturado') {
@@ -170,7 +205,6 @@ function inicar_lancamento(frm) {
         frm.toggle_display('botao_salvar_itens', true);
         frm.toggle_display('botao_editar_itens', false);
         lancador.setup(frm, 'artigos_do_pedido', 'tabela_de_modelos');
-
     };
 };
 
@@ -217,6 +251,7 @@ function encerrar_lancamento(frm, prox_etapa = false) {
 
 function entregar_pedido(frm) {
     if (confirm('Tem certeza que deseja entregar o pedido?')) {
+        // TODO VERIFICAR SE NÃO HÁ FATURAMENTO EM ABERTO
         frm.set_value('pedido_state', 'Entregue');
         frm.set_value('data_entregue', frappe.datetime.now_datetime());
         frm.save();
@@ -245,17 +280,85 @@ function entregar_pedido(frm) {
 
 function iniciar_fechamento(frm) {
     frm.set_value('estado_acerto', 'Fechando');
+    frm.save();
     frm.toggle_display('botao_iniciar_fechamento', false);
-    frm.toggle_display('botao_fechar_pedido', true);
+    frm.toggle_display('botao_encerrar_fechamento', true);
+    iniciar_lancamento(frm);
+    lancador.vender_tudo(frm);
 };
 
-function fechar_pedido(frm) {
+function encerrar_fechamento(frm) {
     if (confirm('Tem certeza que deseja fechar o pedido?')) {
         console.log('fechar pedido')
-        // mudar status do pedido
-        // gerar fatura
+        frappe.call({
+            method: 'millapp.api.atualizar_campos',
+            args: {
+                doctype: 'Atendimentos',
+                name: frm.doc.atendimento,
+                campos_json: JSON.stringify({
+                    'atendimento_state': 'Iniciado',
+                    'data_visita': null
+                })
+            },
+            callback: function (response) {
+                if (response.message) {
+                    console.log('Campos atualizados:', response.message);
+                }
+            }
+        });
+        frm.set_value('pedido_state', 'Faturado');
+        frm.set_value('estado_acerto', 'Fechado');
+        frm.save();
+        gerar_fatura(frm); // O valor total da fatura é calculado por um serverSideScript configurado na interface
     }
 };
+
+function get_itens_vendidos(frm) {
+    // verificar na tabela artigos_do_pedido os itens que possuem o campo quantidade vendida maior que 0
+    let itens_vendidos = frm.doc.artigos_do_pedido.filter(artigo => artigo.quantidade_vendida > 0);
+    console.log(itens_vendidos);
+};
+
+function gerar_fatura(frm) {
+    itens_do_pedido = frm.doc.artigos_do_pedido.filter(artigo => artigo.quantidade_vendida > 0);
+    if (itens_do_pedido.length > 0) {
+        let artigos_faturados = itens_do_pedido.map(artigo => ({
+            'artigo': artigo.artigo,
+            'quantidade': artigo.quantidade_vendida,
+            'preço_etiqueta': artigo.preco_etiqueta,
+            'valor_bruto': artigo.total_vendido
+        }));
+
+        frappe.call({
+            method: 'millapp.api.criar_registro',
+            args: {
+                doctype: 'Faturamentos',
+                campos_valores: JSON.stringify({
+                    'pedido': frm.doc.name,
+                    'cliente': frm.doc.cliente,
+                    'atendimento': frm.doc.name,
+                    'origem': frm.doc.tipo_pedido,
+                    'estado': 'Aberto',
+                    'data_criacao': frappe.datetime.now_datetime(),
+                    'data_vencimento': frappe.datetime.add_days(frappe.datetime.now_datetime(), 0),
+                    'artigos_faturados': artigos_faturados // Adicionar os artigos faturados
+                })
+            },
+            callback: function (response) {
+                if (response.message) {
+                    window.location.href = `/app/faturamentos/${response.message}`;
+                } else {
+                    frappe.msgprint(__('Não foi possível criar o faturamento.'));
+                }
+            },
+            error: function (error) {
+                console.error('Erro na chamada do método:', error);
+                frappe.msgprint(__('Erro ao tentar criar o faturamento.'));
+            }
+        })
+    }
+};
+
 // Lançador de itens
 const lancador = {
     setup: function (frm, tabela_de_artigos, tabela_de_modelos) {
@@ -295,23 +398,36 @@ const lancador = {
         if (refOuCbField) {
             refOuCbField.on('input', this.debounce(function () {
                 let cod_ou_ref = $(this).val();
-                lancador.processar_dados_inseridos(cod_ou_ref);
-            }, 400));
+                if (cod_ou_ref.length >= 5) {
+                    lancador.processar_dados_inseridos(cod_ou_ref);
+                }
+            }, 200));
         }
 
     },
 
-    processar_dados_inseridos: function (cod_ou_ref) {
+    async processar_dados_inseridos(cod_ou_ref) {
         this.frm.set_value('ref_ou_cb', '');
         let artigo = Object.values(this.frm.dict_artigos).find(artigo => artigo.referencia === cod_ou_ref);
         if (artigo != undefined) {
             // logica de artigo
             this.frm.set_value('artigo_a_editar', artigo.name);
-            this.montar_html_lancamento_manual();
+
+            try {
+                await this.montar_html_lancamento_manual();
+                const incrementValueElement = document.getElementById('increment_value');
+                if (incrementValueElement) {
+                    incrementValueElement.select();
+                } else {
+                    console.error('Campo increment_value não encontrado ou não acessível.');
+                }
+            } catch (error) {
+                console.error(error);
+            }
         } else {
+            // logica de modelo de leitura de CODIGO DE BARRAS
             let modelo = Object.values(this.frm.dict_modelos).find(modelo => modelo.codigo_de_barras_numeros === cod_ou_ref);
             if (modelo != undefined) {
-                // logica de modelo de leitura de CODIGO DE BARRAS
                 this.frm.set_value('artigo_a_editar', modelo.parent);
                 this.desmontar_html_lancamento_manual();
                 this.editar_item(modelo.parent, 1, 'Somar', 'artigos');
@@ -325,64 +441,86 @@ const lancador = {
         this.frm.refresh_field('ref_ou_cb');
     },
 
-    montar_html_lancamento_manual: function () {
+    async montar_html_lancamento_manual() {
         // Insere o HTML no DOM
-        this.frm.fields_dict.html_lancador_quantidade.$wrapper.html(`
-        <div class="form-group custom-form">
-            <label class="control-label">Quantidade</label>
-            <div class="input-group">
-                <span class="input-group-btn">
-                    <button class="btn btn-red btn-custom-lg btn-minus" type="button">-</button>
-                </span>
-                <input type="text" class="form-control" id="increment_value" value="0">
-                <span class="input-group-btn">
-                    <button class="btn btn-green btn-custom-lg btn-plus" type="button">+</button>
-                </span>
-                <button id="botao_somar" class="btn btn-primary" type="button" style="margin-left: 10px;">Somar</button>
-                <button id="botao_substituir" class="btn btn-primary" type="button" style="margin-left: 10px;">Substituir</button>
+        return new Promise((resolve) => {
+            this.frm.fields_dict.html_lancador_quantidade.$wrapper.html(`
+            <div class="form-group custom-form">
+                <label class="control-label">Quantidade</label>
+                <div class="input-group">
+                    <span class="input-group-btn">
+                        <button class="btn btn-red btn-custom-lg btn-minus" type="button">-</button>
+                    </span>
+                    <input type="text" class="form-control" id="increment_value" value="0">
+                    <span class="input-group-btn">
+                        <button class="btn btn-green btn-custom-lg btn-plus" type="button">+</button>
+                    </span>
+                    <button id="botao_somar" class="btn btn-primary" type="button" style="margin-left: 10px;">Somar</button>
+                    <button id="botao_substituir" class="btn btn-primary" type="button" style="margin-left: 10px;">Substituir</button>
+                </div>
             </div>
-        </div>
-    `);
+        `);
 
-        // Remove event listeners anteriores, se existirem
-        const botaoSomar = document.getElementById('botao_somar');
-        const botaoSubstituir = document.getElementById('botao_substituir');
-        const btnMinus = this.frm.fields_dict.html_lancador_quantidade.$wrapper.find('.btn-minus');
-        const btnPlus = this.frm.fields_dict.html_lancador_quantidade.$wrapper.find('.btn-plus');
+            // Remove event listeners anteriores, se existirem
+            const botaoSomar = document.getElementById('botao_somar');
+            const botaoSubstituir = document.getElementById('botao_substituir');
+            const btnMinus = this.frm.fields_dict.html_lancador_quantidade.$wrapper.find('.btn-minus');
+            const btnPlus = this.frm.fields_dict.html_lancador_quantidade.$wrapper.find('.btn-plus');
 
-        if (botaoSomar) {
-            botaoSomar.removeEventListener('click', this.botao_manual_pressionado);
-            botaoSomar.addEventListener('click', () => this.botao_manual_pressionado('Somar'));
-        } else {
-            console.error('Elemento com ID "botao_somar" não encontrado.');
-        }
+            const incrementValueElement = document.getElementById('increment_value');
+            if (incrementValueElement) {
+                incrementValueElement.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        this.botao_manual_pressionado('Somar');
+                    }
+                });
+            }
 
-        if (botaoSubstituir) {
-            botaoSubstituir.removeEventListener('click', this.botao_manual_pressionado);
-            botaoSubstituir.addEventListener('click', () => this.botao_manual_pressionado('Substituir'));
-        } else {
-            console.error('Elemento com ID "botao_substituir" não encontrado.');
-        }
+            if (botaoSomar) {
+                botaoSomar.removeEventListener('click', this.botao_manual_pressionado);
+                botaoSomar.addEventListener('click', () => this.botao_manual_pressionado('Somar'));
+            } else {
+                console.error('Elemento com ID "botao_somar" não encontrado.');
+            }
 
-        if (btnMinus.length > 0) {
-            btnMinus.off('click').on('click', function () {
-                // Lógica do evento de clique para o botão "-"
-                let incrementValue = parseInt($('#increment_value').val(), 10);
-                if (!isNaN(incrementValue) && incrementValue > 0) {
-                    $('#increment_value').val(incrementValue - 1);
+            if (botaoSubstituir) {
+                botaoSubstituir.removeEventListener('click', this.botao_manual_pressionado);
+                botaoSubstituir.addEventListener('click', () => this.botao_manual_pressionado('Substituir'));
+            } else {
+                console.error('Elemento com ID "botao_substituir" não encontrado.');
+            }
+
+            if (btnMinus.length > 0) {
+                btnMinus.off('click').on('click', function () {
+                    // Lógica do evento de clique para o botão "-"
+                    let incrementValue = parseInt($('#increment_value').val(), 10);
+                    if (!isNaN(incrementValue) && incrementValue > 0) {
+                        $('#increment_value').val(incrementValue - 1);
+                    }
+                });
+            }
+
+            if (btnPlus.length > 0) {
+                btnPlus.off('click').on('click', function () {
+                    // Lógica do evento de clique para o botão "+"
+                    let incrementValue = parseInt($('#increment_value').val(), 10);
+                    if (!isNaN(incrementValue)) {
+                        $('#increment_value').val(incrementValue + 1);
+                    }
+                });
+            }
+            incrementValueElement.select();
+            setTimeout(() => {
+                const refOuCbElement = document.querySelector('[data-fieldname="ref_ou_cb"] input');
+                if (refOuCbElement) {
+                    refOuCbElement.focus();
+                } else {
+                    console.error('Campo ref_ou_cb não encontrado ou não acessível.');
                 }
-            });
-        }
+                resolve();
+            }, 100);
+        })
 
-        if (btnPlus.length > 0) {
-            btnPlus.off('click').on('click', function () {
-                // Lógica do evento de clique para o botão "+"
-                let incrementValue = parseInt($('#increment_value').val(), 10);
-                if (!isNaN(incrementValue)) {
-                    $('#increment_value').val(incrementValue + 1);
-                }
-            });
-        }
     },
 
     botao_manual_pressionado: function (funcao) {
@@ -392,7 +530,42 @@ const lancador = {
         const modelo = Object.values(this.frm.dict_modelos).find(modelo => modelo.parent === artigo && modelo.modelo_padrao === 1);
 
         this.editar_item(artigo, quantidade, funcao, 'artigos');
+
+        if (funcao == 'Substituir' && this.frm.doc.estado_acerto == 'Aberto') {
+            this.logica_substituir_manual(artigo);
+        }
         this.editar_item(modelo.name, quantidade, funcao, 'modelos');
+
+        const refOuCbElement = document.querySelector('[data-fieldname="ref_ou_cb"] input');
+        if (refOuCbElement) {
+            refOuCbElement.focus();
+        } else {
+            console.error('Campo ref_ou_cb não encontrado ou não acessível.');
+        }
+    },
+
+    logica_substituir_manual: function (artigo) {
+        // Verifique se tabela está definida corretamente
+        let tabela = 'tabela_de_modelos';
+        if (!tabela) {
+            console.error('Tabela de modelos não definida.');
+            return;
+        }
+
+        let registros = this.frm.doc[tabela];
+        if (!Array.isArray(registros)) {
+            console.error(`Registros para a tabela ${tabela} não são um array.`);
+            return;
+        }
+
+        // Filtre e remova os registros com o campo "artigo" igual ao artigo fornecido
+        let registrosParaRemover = registros.filter(registro => registro.artigo == artigo);
+        registrosParaRemover.forEach(registro => {
+            console.log(registro)
+            frappe.model.remove_from_locals(tabela, registro.name);
+        });
+        this.frm.doc[tabela] = registros.filter(registro => registro.artigo != artigo);
+
     },
 
     desmontar_html_lancamento_manual: function () {
@@ -405,6 +578,24 @@ const lancador = {
         this.frm.toggle_display(button, display);
     },
 
+    devolver_tudo: function () {
+        this.frm.doc.artigos_do_pedido.forEach(artigo => {
+            this.editar_item(artigo.artigo, artigo.quantidade_entregue, 'Substituir', 'artigos');
+        });
+        this.frm.doc.tabela_de_modelos.forEach(artigo => {
+            this.editar_item(artigo.modelo, artigo.quantidade_entregue, 'Substituir', 'modelos');
+        });
+    },
+
+    vender_tudo: function () {
+        this.frm.doc.artigos_do_pedido.forEach(artigo => {
+            this.editar_item(artigo.artigo, 0, 'Substituir', 'artigos');
+        })
+        this.frm.doc.tabela_de_modelos.forEach(artigo => {
+            this.editar_item(artigo.modelo, 0, 'Substituir', 'modelos');
+        });
+
+    },
 
     /**
      * Edita um item na tabela de lançamento.
@@ -421,7 +612,6 @@ const lancador = {
 
         if (registro) {
             this.editar_registro_na_tabela(registro, quantidade, modo, grid);
-            console.log('Registro encontrado:', registro);
         } else {
             this.criar_registro_na_tabela(item, quantidade, grid);
         };
@@ -505,6 +695,7 @@ const lancador = {
         } else if (grid === 'modelos') {
             registro = {
                 modelo: item,
+                artigo: Object.values(this.frm.dict_modelos).find(modelo => modelo.name === item).parent,
                 [campo_alvo]: quantidade,
             };
         };
@@ -523,11 +714,13 @@ const lancador = {
         const campo_alvo = this.get_campo_alvo();
         const novo_valor = this.calcular_novo_valor(registro, quantidade, modo);
         frappe.model.set_value(registro.doctype, registro.name, campo_alvo, novo_valor);
+
         if (campo_alvo == 'quantidade_entregue') {
             frappe.model.set_value(registro.doctype, registro.name, 'valor_total_entregue', novo_valor * registro.preco_etiqueta);
         } else if (campo_alvo == 'quantidade_devolvida') {
             frappe.model.set_value(registro.doctype, registro.name, 'quantidade_vendida', registro.quantidade_entregue - registro.quantidade_devolvida);
             if (grid == "artigos") {
+                // Apenas a tabela "artigos" calcula valores vendidos
                 frappe.model.set_value(registro.doctype, registro.name, 'total_vendido', registro.quantidade_vendida * registro.preco_etiqueta);
             }
         }
@@ -557,3 +750,21 @@ const lancador = {
         };
     }
 };
+
+function definir_foco(frm, campo) {
+    setTimeout(function () {
+        if (frm.fields_dict[campo] && frm.fields_dict[campo].input) {
+            frm.fields_dict[campo].input.focus();
+        } else {
+            console.error(`Campo ${campo} não encontrado ou não acessível.`);
+        }
+    }, 500); // Timeout para garantir que o campo esteja renderizado
+}
+
+// TODO IMPLANTAÇÕES:
+// - Adicionar botão de cancelar pedido
+// - Caso lançador for "codigo de barras" > manter o campo de leitura de codigo de barras
+// - Caso lançador for "referencia" > mudar foco para campo quantidade e enter para somar
+
+// TODO Ideiais:
+// - Alterar para tabela HTML caso grid do frappe não se comporte bem nos celulares

@@ -17,7 +17,7 @@ frappe.ui.form.on('Atendimentos', {
         }
     },
     refresh: function (frm) {
-        // TODO atualizar cadastros / registros
+        // TODO Mostrar dados do contato
         // Layout Base
         $('button').off('click');
         frm.trigger('update_lista_pedidos');
@@ -105,9 +105,7 @@ frappe.ui.form.on('Atendimentos', {
                                 if (data.message.length > 0) {
                                     frappe.msgprint(__('Existe um faturamento em aberto ou em débito para este Cliente.'));
                                 } else {
-
                                     frappe.call({
-
                                         method: 'millapp.api.criar_registro',
                                         args: {
                                             doctype: 'Pedidos',
@@ -136,7 +134,6 @@ frappe.ui.form.on('Atendimentos', {
         });
 
     },
-
     update_lista_pedidos: function (frm) {
         frappe.call({
             method: 'frappe.client.get_list',
@@ -219,3 +216,4 @@ frappe.ui.form.on('Atendimentos', {
     }
 
 });
+

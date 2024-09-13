@@ -1,0 +1,124 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-09-10 16:33:49.916322",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "tipo",
+  "estado",
+  "column_break_ydnp",
+  "cliente",
+  "fatura",
+  "section_break_qjyd",
+  "banco_digitos",
+  "banco_nome",
+  "agencia",
+  "conta",
+  "column_break_rmdw",
+  "cheque",
+  "valor",
+  "data_deposito"
+ ],
+ "fields": [
+  {
+   "default": "Entregue",
+   "fieldname": "estado",
+   "fieldtype": "Select",
+   "label": "Estado",
+   "options": "Entregue\nDepositado\nCompensado\nDevolvido"
+  },
+  {
+   "fieldname": "banco_digitos",
+   "fieldtype": "Int",
+   "label": "Banco (digitos)"
+  },
+  {
+   "fieldname": "banco_nome",
+   "fieldtype": "Data",
+   "label": "Banco (Nome)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "agencia",
+   "fieldtype": "Int",
+   "label": "Agencia"
+  },
+  {
+   "fieldname": "conta",
+   "fieldtype": "Data",
+   "label": "Conta"
+  },
+  {
+   "fieldname": "cheque",
+   "fieldtype": "Data",
+   "label": "Cheque"
+  },
+  {
+   "fieldname": "valor",
+   "fieldtype": "Currency",
+   "label": "Valor"
+  },
+  {
+   "fieldname": "data_deposito",
+   "fieldtype": "Date",
+   "label": "Data para Dep\u00f3sito"
+  },
+  {
+   "default": "Recebido",
+   "fieldname": "tipo",
+   "fieldtype": "Select",
+   "label": "Tipo",
+   "options": "Recebido\nEmitido"
+  },
+  {
+   "fieldname": "cliente",
+   "fieldtype": "Link",
+   "label": "Cliente",
+   "options": "Contatos"
+  },
+  {
+   "fieldname": "column_break_ydnp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fatura",
+   "fieldtype": "Link",
+   "label": "Fatura",
+   "options": "Faturamentos"
+  },
+  {
+   "fieldname": "section_break_qjyd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_rmdw",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-09-12 10:08:31.512279",
+ "modified_by": "Administrator",
+ "module": "Financeiro",
+ "name": "Cheques",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
