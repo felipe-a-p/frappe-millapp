@@ -9,6 +9,7 @@
   "section_break_tfip",
   "referencia",
   "artigo",
+  "producao_propria",
   "column_break_fhix",
   "status",
   "grupo",
@@ -107,11 +108,17 @@
    "fieldtype": "Table",
    "label": "Tabela de Modelos",
    "options": "Modelos de Artigos"
+  },
+  {
+   "default": "0",
+   "fieldname": "producao_propria",
+   "fieldtype": "Check",
+   "label": "Produ\u00e7\u00e3o Propria"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-09-06 09:50:55.452935",
+ "modified": "2024-09-17 09:05:39.579386",
  "modified_by": "Administrator",
  "module": "Materiais",
  "name": "Artigos",

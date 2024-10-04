@@ -1,0 +1,80 @@
+{
+ "actions": [],
+ "autoname": "format:{usuario}",
+ "creation": "2024-09-13 17:36:38.884299",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "usuario",
+  "section_break_mrpr",
+  "e_promotor_independente",
+  "pode_editar_comissao",
+  "tem_estoque_externos",
+  "centros_de_estocagem"
+ ],
+ "fields": [
+  {
+   "fieldname": "usuario",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Usuario",
+   "options": "User",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "section_break_mrpr",
+   "fieldtype": "Section Break",
+   "label": "Vendas"
+  },
+  {
+   "default": "0",
+   "fieldname": "pode_editar_comissao",
+   "fieldtype": "Check",
+   "label": "Pode editar comiss\u00e3o ?"
+  },
+  {
+   "depends_on": "tem_estoque_externos",
+   "fieldname": "centros_de_estocagem",
+   "fieldtype": "Data",
+   "label": "Centros de Estocagem"
+  },
+  {
+   "default": "0",
+   "fieldname": "tem_estoque_externos",
+   "fieldtype": "Check",
+   "label": "Tem estoque externos ?"
+  },
+  {
+   "default": "0",
+   "fieldname": "e_promotor_independente",
+   "fieldtype": "Check",
+   "label": "\u00c9 promotor Independente ?"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-09-17 16:42:05.378945",
+ "modified_by": "Administrator",
+ "module": "App Milleniuns",
+ "name": "Configuracoes de Users",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

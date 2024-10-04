@@ -10,13 +10,24 @@
   "cliente",
   "botao_criar_atendimento",
   "telefone_principal",
-  "endere\u00e7o",
+  "botao_abrir_whattsapp",
   "column_break_txay",
   "atendimento_state",
   "column_break_eekb",
   "data_inicio",
   "data_visita",
   "data_encerramento",
+  "section_break_gtlv",
+  "rua",
+  "casa_complemento",
+  "bairro",
+  "column_break_bsad",
+  "cidade",
+  "estado",
+  "botao_atualizar_cadastro",
+  "column_break_qzup",
+  "latitude",
+  "longitude",
   "section_break_ntow",
   "encomendas",
   "column_break_axon",
@@ -24,10 +35,12 @@
   "lista_pedidos_html",
   "responsaveis_tab",
   "resp_atendimento",
-  "resp_separa\u00e7\u00e3o",
+  "resp_separacao",
   "resp_logistico",
   "metodo_captacao",
-  "tabela_precos"
+  "tabela_precos",
+  "informa\u00e7\u00f5es_tab",
+  "ultima_data_rota"
  ],
  "fields": [
   {
@@ -57,7 +70,7 @@
    "label": "Resp. Atendimento"
   },
   {
-   "fieldname": "resp_separa\u00e7\u00e3o",
+   "fieldname": "resp_separacao",
    "fieldtype": "Data",
    "label": "Resp. Separa\u00e7\u00e3o"
   },
@@ -71,11 +84,6 @@
    "fieldtype": "Data",
    "label": "Telefone Principal",
    "read_only": 1
-  },
-  {
-   "fieldname": "endere\u00e7o",
-   "fieldtype": "Data",
-   "label": "Endere\u00e7o"
   },
   {
    "fieldname": "data_visita",
@@ -140,12 +148,79 @@
    "fieldtype": "Link",
    "label": "Tabela de Pre\u00e7os",
    "options": "Tabelas de Precos"
+  },
+  {
+   "fieldname": "informa\u00e7\u00f5es_tab",
+   "fieldtype": "Tab Break",
+   "label": "Informa\u00e7\u00f5es"
+  },
+  {
+   "fieldname": "section_break_gtlv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "rua",
+   "fieldtype": "Data",
+   "label": "Rua"
+  },
+  {
+   "fieldname": "casa_complemento",
+   "fieldtype": "Data",
+   "label": "Casa + Complemento"
+  },
+  {
+   "fieldname": "bairro",
+   "fieldtype": "Data",
+   "label": "Bairro"
+  },
+  {
+   "fieldname": "column_break_bsad",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cidade",
+   "fieldtype": "Data",
+   "label": "Cidade"
+  },
+  {
+   "fieldname": "estado",
+   "fieldtype": "Data",
+   "label": "Estado"
+  },
+  {
+   "fieldname": "botao_atualizar_cadastro",
+   "fieldtype": "Button",
+   "label": "Atualizar Cadastro"
+  },
+  {
+   "fieldname": "column_break_qzup",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Data",
+   "label": "Latitude"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Data",
+   "label": "Longitude"
+  },
+  {
+   "fieldname": "botao_abrir_whattsapp",
+   "fieldtype": "Button",
+   "label": "Abrir no WhattsApp"
+  },
+  {
+   "fieldname": "ultima_data_rota",
+   "fieldtype": "Date",
+   "label": "Ultima Rota Atribuida (Data)"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2024-08-16 09:44:04.858562",
+ "modified": "2024-09-20 00:19:22.824199",
  "modified_by": "Administrator",
  "module": "Atendimento",
  "name": "Atendimentos",

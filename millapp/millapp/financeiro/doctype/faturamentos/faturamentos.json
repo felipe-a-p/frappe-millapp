@@ -23,10 +23,14 @@
   "column_break_uccp",
   "desconto_pc",
   "desconto_moeda",
+  "botao_calcular_desconto",
   "section_break_nezl",
-  "botao_novo_pagamento",
   "total_pago",
-  "falta_pagar",
+  "column_break_berp",
+  "valor_restante",
+  "column_break_jgyx",
+  "botao_novo_pagamento",
+  "section_break_wzzl",
   "artigos_faturados",
   "pagamentos_tab",
   "pagamentos",
@@ -48,7 +52,8 @@
    "fieldname": "responsavel",
    "fieldtype": "Link",
    "label": "Responsavel",
-   "options": "Contatos"
+   "options": "Contatos",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_oxda",
@@ -93,29 +98,34 @@
    "fieldname": "cliente",
    "fieldtype": "Link",
    "label": "Cliente",
-   "options": "Contatos"
+   "options": "Contatos",
+   "read_only": 1
   },
   {
    "fieldname": "data_vencimento",
    "fieldtype": "Date",
    "label": "Data de Vencimento",
-   "reqd": 1
+   "reqd": 1,
+   "set_only_once": 1
   },
   {
    "fieldname": "section_break_cbts",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Resumo"
   },
   {
    "fieldname": "valor_bruto_fatura",
    "fieldtype": "Currency",
    "label": "Valor Bruto Fatura",
-   "precision": "2"
+   "precision": "2",
+   "read_only": 1
   },
   {
    "fieldname": "valor_liquido_fatura",
    "fieldtype": "Currency",
    "label": "Valor Liquido Fatura",
-   "precision": "2"
+   "precision": "2",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_uccp",
@@ -125,17 +135,20 @@
    "fieldname": "desconto_pc",
    "fieldtype": "Float",
    "label": "Desconto (%)",
-   "precision": "2"
+   "precision": "2",
+   "read_only": 1
   },
   {
    "fieldname": "desconto_moeda",
    "fieldtype": "Currency",
    "label": "Desconto (R$)",
-   "precision": "2"
+   "precision": "2",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_nezl",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Pagamento"
   },
   {
    "fieldname": "botao_novo_pagamento",
@@ -146,19 +159,15 @@
    "fieldname": "total_pago",
    "fieldtype": "Currency",
    "label": "Total Pago",
-   "precision": "2"
-  },
-  {
-   "fieldname": "falta_pagar",
-   "fieldtype": "Currency",
-   "label": "Valor Restante",
-   "precision": "2"
+   "precision": "2",
+   "read_only": 1
   },
   {
    "fieldname": "artigos_faturados",
    "fieldtype": "Table",
    "label": "Artigos",
-   "options": "Artigos Faturados"
+   "options": "Artigos Faturados",
+   "read_only": 1
   },
   {
    "fieldname": "pagamentos_tab",
@@ -180,11 +189,36 @@
    "fieldname": "configura\u00e7\u00f5es_tab",
    "fieldtype": "Tab Break",
    "label": "Configura\u00e7\u00f5es"
+  },
+  {
+   "fieldname": "botao_calcular_desconto",
+   "fieldtype": "Button",
+   "label": "Calcular desconto"
+  },
+  {
+   "fieldname": "column_break_berp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_jgyx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_wzzl",
+   "fieldtype": "Section Break",
+   "label": "Itens"
+  },
+  {
+   "fieldname": "valor_restante",
+   "fieldtype": "Currency",
+   "label": "Valor Restante",
+   "precision": "2",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-09-12 10:17:47.521867",
+ "modified": "2024-09-17 23:41:30.902866",
  "modified_by": "Administrator",
  "module": "Financeiro",
  "name": "Faturamentos",

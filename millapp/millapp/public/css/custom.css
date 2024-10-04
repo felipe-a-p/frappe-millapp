@@ -50,3 +50,8 @@
     margin: 0 5px;
     /* Ajuste a margem entre os botões e a caixa de texto */
 }
+
+.artigo-cell {
+    font-size: 12px;
+    /* Ajuste o tamanho da fonte conforme necessário */
+}

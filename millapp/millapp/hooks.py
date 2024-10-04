@@ -7,9 +7,6 @@ app_license = "mit"
 
 app_include_css = "/assets/millapp/css/custom.css"
 
-override_whitelisted_methods = {
-    "path.to.criar_pedido": "millapp.atendimento.doctype.atendimentos.api.criar_pedido"
-}
 
 # required_apps = []
 

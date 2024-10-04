@@ -17,121 +17,27 @@ frappe.ui.form.on('Atendimentos', {
         }
     },
     refresh: function (frm) {
-        // TODO Mostrar dados do contato
         // Layout Base
         $('button').off('click');
         frm.trigger('update_lista_pedidos');
         frm.disable_save(); // desativa botão salvar de cima
 
-        // STATE: Criado 
         frm.toggle_display('botao_criar_atendimento', (frm.doc.atendimento_state === 'Criado'));
+        frm.toggle_enable('cliente', frm.doc.atendimento_state === 'Criado');
+
         frm.fields_dict.botao_criar_atendimento.$input.on('click', function () {
-            if (!frm.doc.cliente) {
-                frappe.msgprint(__('Por favor, preencha o campo Cliente antes de verificar.'));
-                return;
-            }
-            frappe.call({
-                method: 'frappe.client.get_list',
-                args: {
-                    doctype: 'Atendimentos',
-                    filters: {
-                        cliente: frm.doc.cliente,
-                        atendimento_state: ['!=', 'Fechado']
-                    },
-                    fields: ['name'],
-                    limit_page_length: 1 // Limita a 1 registro para verificar se existe algum
-                },
-                callback: function (data) {
-                    if (data.message.length > 0) {
-                        frappe.msgprint(__('Já existe um atendimento aberto para este cliente.'));
-                    } else {
-                        frappe.call({
-                            method: 'frappe.client.get_list',
-                            args: {
-                                doctype: 'Faturamentos',
-                                filters: {
-                                    cliente: frm.doc.cliente,
-                                    faturamento_state: ['!=', 'Pago']
-                                },
-                                fields: ['name'],
-                                limit_page_length: 1 // Limita a 1 registro para verificar se existe algum
-                            },
-                            callback: function (data) {
-                                if (data.message.length > 0) {
-                                    frappe.msgprint(__('Existe um faturamento em aberto ou em débito para este Cliente.'));
-                                } else {
-                                    frm.set_value('atendimento_state', 'Iniciado');
-                                    frm.set_value('data_inicio', frappe.datetime.now_datetime());
-                                    frm.save();
-                                }
-                            }
-                        })
-                    }
-                }
-            });
+            criar_atendimento(frm);
         });
+        frm.fields_dict.botao_atualizar_cadastro.$input.on('click', function () {
+            atuliazer_dados_contato(frm);
+        });
+        frm.fields_dict.botao_abrir_whattsapp.$input.on('click', function () {
+            abrir_whattsapp(frm.doc.telefone_principal);
+        })
 
         // STATE: Iniciado
         frm.toggle_display('botao_novo_pedido', frm.doc.atendimento_state !== 'Criado' && frm.doc.atendimento_state !== 'Fechado');
-        frm.fields_dict.botao_novo_pedido.$input.on('click', function () {
-            frappe.call({
-                method: 'frappe.client.get_list',
-                args: {
-                    doctype: 'Pedidos',
-                    filters: {
-                        cliente: frm.doc.cliente,
-                        pedido_state: ['!=', 'Faturado']
-                    },
-                    fields: ['name'],
-                    limit_page_length: 1 // Limita a 1 registro para verificar se existe algum
-                },
-                callback: function (data) {
-                    console.log(data)
-                    if (data.message.length > 0) {
-                        frappe.msgprint(__('Já existe um Pedido aberto para este cliente.'));
-                    } else {
-                        frappe.call({
-                            method: 'frappe.client.get_list',
-                            args: {
-                                doctype: 'Faturamentos',
-                                filters: {
-                                    cliente: frm.doc.cliente,
-                                    faturamento_state: ['!=', 'Pago']
-                                },
-                                fields: ['name'],
-                                limit_page_length: 1 // Limita a 1 registro para verificar se existe algum
-                            },
-                            callback: function (data) {
-                                if (data.message.length > 0) {
-                                    frappe.msgprint(__('Existe um faturamento em aberto ou em débito para este Cliente.'));
-                                } else {
-                                    frappe.call({
-                                        method: 'millapp.api.criar_registro',
-                                        args: {
-                                            doctype: 'Pedidos',
-                                            campos_valores: JSON.stringify({
-                                                'cliente': frm.doc.cliente,
-                                                'atendimento': frm.doc.name,
-                                                'pedido_state': 'Pre Criado',
-                                                'tabela_precos': frm.doc.tabela_precos
-                                            })
-                                        },
-                                        callback: function (response) {
-                                            if (response.message) {
-                                                window.location.href = `/app/pedidos/${response.message}`;
-                                            } else {
-                                                frappe.msgprint(__('Não foi possível criar o pedido.'));
-                                            }
-                                        }
-                                    })
-
-                                }
-                            }
-                        })
-                    }
-                }
-            });
-        });
+        frm.fields_dict.botao_novo_pedido.$input.on('click', function () { criar_pedido(frm) });
 
     },
     update_lista_pedidos: function (frm) {
@@ -150,7 +56,7 @@ frappe.ui.form.on('Atendimentos', {
                     <table id="pedidos_table" class="table table-bordered">
                         <thead>
                             <tr>
-                                <th><a href="#" class="sort" data-sort="nome" data-order="asc">Nome</a></th>
+                                <th><a href="#" class="sort" data-sort="pedido" data-order="asc">Pedido</a></th>
                                 <th><a href="#" class="sort" data-sort="data_criacao" data-order="asc">Data Criação</a></th>
                                 <th><a href="#" class="sort" data-sort="data_acerto" data-order="asc">Data Acerto</a></th>
                                 <th><a href="#" class="sort" data-sort="estado" data-order="asc">Estado</a></th>
@@ -217,3 +123,223 @@ frappe.ui.form.on('Atendimentos', {
 
 });
 
+abrir_whattsapp = function (telefone) {
+    telefone = telefone.replace(/\D/g, '');
+
+    // Verifica se o telefone já tem o código de país +55
+    if (!telefone.startsWith('55')) {
+        telefone = '55' + telefone; // Adiciona o código do Brasil se necessário
+    }
+
+    if (telefone) {
+        // Monta o link do WhatsApp com o número de telefone
+        let whatsapp_url = `https://wa.me/${telefone}`;
+        window.open(whatsapp_url, '_blank'); // Abre o WhatsApp em uma nova aba ou no app
+    }
+}
+
+criar_atendimento = function (frm) {
+    if (!cliente_esta_preenchido(frm)) {
+        frappe.msgprint(__('Por favor, preencha o campo Cliente antes de verificar.'));
+        return;
+    }
+
+    tem_atendimento_aberto(frm.doc.cliente).then(atendimentoAberto => {
+        if (atendimentoAberto) {
+            frappe.msgprint(__('Já existe um atendimento aberto para este cliente.'));
+        } else {
+            tem_pedido_aberto(frm.doc.cliente).then(pedidoAberto => {
+                if (pedidoAberto) {
+                    frappe.msgprint(__('Já existe um pedido não faturado ou não entregue para este cliente.'));
+                } else {
+                    tem_faturamento_aberto(frm.doc.cliente).then(faturamentoAberto => {
+                        if (faturamentoAberto) {
+                            frappe.msgprint(__('Já existe um faturamento não pago para este cliente.'));
+                        } else {
+                            frm.set_value('atendimento_state', 'Iniciado');
+                            frm.set_value('data_inicio', frappe.datetime.now_datetime());
+                            atuliazer_dados_contato(frm);
+                        }
+                    }).catch(error => {
+                        frappe.msgprint(__('Erro ao verificar faturamentos: ') + error.message);
+                    });
+                }
+            }).catch(error => {
+                frappe.msgprint(__('Erro ao verificar pedidos: ') + error.message);
+            });
+        }
+    }).catch(error => {
+        frappe.msgprint(__('Erro ao verificar atendimentos: ') + error.message);
+    });
+};
+
+criar_pedido = function (frm) {
+    tem_pedido_aberto(frm.doc.cliente).then(pedidoAberto => {
+        if (pedidoAberto) {
+            frappe.msgprint(__('Já existe um Pedido aberto para este cliente.'));
+        } else {
+            tem_faturamento_aberto(frm.doc.cliente).then(faturamentoAberto => {
+                if (faturamentoAberto) {
+                    frappe.msgprint(__('Existe um faturamento em aberto ou em débito para este Cliente.'));
+                } else {
+                    let campos_valores = {
+                        'cliente': frm.doc.cliente,
+                        'atendimento': frm.doc.name,
+                        'pedido_state': 'Pre Criado',
+                        'config_tabela_precos': frm.doc.tabela_precos
+                    };
+                    if (frm.doc.data_visita) {
+                        campos_valores['data_entrega'] = frm.doc.data_visita;
+                    }
+
+                    frappe.call({
+                        method: 'millapp.api.criar_registro',
+                        args: {
+                            doctype: 'Pedidos',
+                            campos_valores: JSON.stringify(campos_valores)
+                        },
+                        callback: function (response) {
+                            if (response.message) {
+                                window.location.href = `/app/pedidos/${response.message}`;
+                            } else {
+                                frappe.msgprint(__('Não foi possível criar o pedido.'));
+                            }
+                        }
+                    });
+                }
+            })
+        }
+    });
+};
+
+atuliazer_dados_contato = function (frm) {
+    get_dados_contato(frm.doc.cliente).then(dados_contato => {
+        console.log(dados_contato)
+        if (dados_contato) {
+            frm.set_value('telefone_principal', dados_contato.telefone);
+            frm.set_value('rua', dados_contato.rua);
+            frm.set_value('casa_complemento', dados_contato.casa + (dados_contato.complemento == null ? '' : ' ' + dados_contato.complemento));
+            frm.set_value('bairro', dados_contato.bairro);
+            frm.set_value('cidade', dados_contato.cidade);
+            frm.set_value('estado', dados_contato.estado);
+            frm.set_value('latitude', dados_contato.latitude);
+            frm.set_value('longitude', dados_contato.longitude);
+            frm.save();
+        }
+    }).catch(error => {
+        frappe.msgprint(__('Erro ao buscar dados do contato: ') + error.message);
+    });
+}
+
+get_dados_contato = function (cliente) {
+    return new Promise((resolve, reject) => {
+        frappe.call({
+            method: 'frappe.client.get',
+            args: {
+                doctype: 'Contatos',
+                name: cliente
+            },
+            callback: function (r) {
+                if (r.message) {
+                    resolve(r.message); // Retorna os dados do contato
+                } else {
+                    resolve(null); // Nenhum dado encontrado
+                }
+            },
+            error: function (error) {
+                reject(error); // Em caso de erro na chamada
+            }
+        });
+    });
+};
+
+cliente_esta_preenchido = function (frm) {
+    if (!frm.doc.cliente) {
+        frappe.msgprint(__('Por favor, preencha o campo Cliente antes de verificar.'));
+        return false;
+    }
+    return true;
+};
+
+tem_atendimento_aberto = function (cliente) {
+    return new Promise((resolve, reject) => {
+        frappe.call({
+            method: 'frappe.client.get_list',
+            args: {
+                doctype: 'Atendimentos',
+                filters: {
+                    cliente: cliente,
+                    atendimento_state: ['!=', 'Fechado']
+                },
+                fields: ['name'],
+                limit_page_length: 1 // Limita a 1 registro para verificar se existe algum
+            },
+            callback: function (data) {
+                if (data.message.length > 0) {
+                    resolve(true); // Há atendimentos abertos
+                } else {
+                    resolve(false); // Não há atendimentos abertos
+                }
+            },
+            error: function (error) {
+                reject(error);
+            }
+        });
+    });
+};
+
+tem_pedido_aberto = function (cliente) {
+    return new Promise((resolve, reject) => {
+        frappe.call({
+            method: 'frappe.client.get_list',
+            args: {
+                doctype: 'Pedidos',
+                filters: {
+                    cliente: cliente,
+                    pedido_state: ['!=', ['Faturado', 'Entregue']], // Faturado é o estado final do pedido
+                },
+                fields: ['name'],
+                limit_page_length: 1 // Limita a 1 registro para verificar se existe algum
+            },
+            callback: function (data) {
+                if (data.message.length > 0) {
+                    resolve(true); // Há pedidos não cancelados
+                } else {
+                    resolve(false); // Não há pedidos não cancelados
+                }
+            },
+            error: function (error) {
+                reject(error); // Em caso de erro na chamada
+            }
+        });
+    });
+}
+
+tem_faturamento_aberto = function (cliente) {
+    return new Promise((resolve, reject) => {
+        frappe.call({
+            method: 'frappe.client.get_list',
+            args: {
+                doctype: 'Faturamentos',
+                filters: {
+                    cliente: cliente,
+                    faturamento_state: ['!=', 'Pago']
+                },
+                fields: ['name'],
+                limit_page_length: 1 // Limita a 1 registro para verificar se existe algum
+            },
+            callback: function (data) {
+                if (data.message.length > 0) {
+                    resolve(true); // Há faturamentos não pagos
+                } else {
+                    resolve(false); // Não há faturamentos não pagos
+                }
+            },
+            error: function (error) {
+                reject(error); // Em caso de erro na chamada
+            }
+        });
+    });
+};
+
+// TODO Alterar data de acerto (se pedido estiver entregue) e de entrega (se pedido estiver criado/separado) ao alterar a proxima visita

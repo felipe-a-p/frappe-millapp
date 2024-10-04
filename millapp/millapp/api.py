@@ -56,3 +56,21 @@ def verificar_codigo_de_barras_unico(codigo):
         return {'unico': False}
     else:
         return {'unico': True}
+    
+@frappe.whitelist()
+def get_descontos(tipo):
+    return frappe.get_all('Regras de Descontos', filters={'tipo': tipo}, fields=['de', 'ate', 'pc_desconto'])
+
+@frappe.whitelist()
+def criar_notificacao(usuario_receptor, mensagem, doctype, nome_documento, assunto = "Nova Notificação", enviado_de = "Sistema"):
+    # Cria uma notificação que aparecerá no sino
+    frappe.get_doc({
+        "doctype": "Notification Log",
+        "for_user": usuario_receptor,
+        "from_user": enviado_de,
+        "subject": assunto,
+        "email_content": mensagem,
+        "document_type": doctype,
+        "document_name": nome_documento  
+    }).insert(ignore_permissions=True)
+    

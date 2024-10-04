@@ -29,7 +29,8 @@
   "column_break_nwpx",
   "observacoes",
   "latitude",
-  "longitude"
+  "longitude",
+  "lat_long_por_api"
  ],
  "fields": [
   {
@@ -164,10 +165,17 @@
    "fieldname": "observacoes",
    "fieldtype": "Data",
    "label": "Observa\u00e7\u00f5es"
+  },
+  {
+   "default": "0",
+   "fieldname": "lat_long_por_api",
+   "fieldtype": "Check",
+   "label": "Lat / Long Automaticos",
+   "read_only": 1
   }
  ],
  "links": [],
- "modified": "2024-09-12 16:36:45.300358",
+ "modified": "2024-09-19 22:06:53.994967",
  "modified_by": "Administrator",
  "module": "App Milleniuns",
  "name": "Contatos",

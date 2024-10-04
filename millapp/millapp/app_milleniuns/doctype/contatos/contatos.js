@@ -37,6 +37,7 @@ frappe.ui.form.on("Contatos", {
                         frm.set_value('estado', data.state);
                         frm.set_value('latitude', data.lat);
                         frm.set_value('longitude', data.lng);
+                        frm.set_value('lat_long_por_api', true);
                     }
                 })
                 .catch(error => {
@@ -143,3 +144,7 @@ function validarCNPJ(cnpj) {
         return false;
     return true;
 }
+
+// TODO Verifica se não há um contato já com o mesmo cpf ou cnpj...
+// se houer, não permitir salvar o contato, verificar se o contato tem atendimento ativo e se não houver, criar um atendimento para o contato
+// TODO Exibir apenas contatos que foram cadastrados pelo usuario + que já tiveram um atendimento pelo usuario
